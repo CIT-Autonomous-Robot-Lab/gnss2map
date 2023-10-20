@@ -24,5 +24,8 @@ GNSSからの情報をマップ内の座標に変換するパッケージ
 
 # 実行方法
 1. 適切なパラメータを設定する
-2. 以下のコマンドを実行する \
-```ros2 launch gnss2map gauss_kruger.launch.py```
+2. 以下のコマンドを実行する
+
+```
+ros2 launch gnss2map gauss_kruger.launch.py
+```
