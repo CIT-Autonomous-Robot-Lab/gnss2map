@@ -7,6 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <vector>
 
 namespace gnss2map
@@ -28,15 +29,17 @@ class GaussKruger : public rclcpp::Node
     
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_gnss_pose_;
 
     void initPubSub();
     void setParam();
     void getParam();
     void cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
     void initVariable();
-    void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y, double &gamma);
+    void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
     void pubOdomGnss(double x, double y);
+    void pubGnssPose(double x, double y);
 };
 }
 

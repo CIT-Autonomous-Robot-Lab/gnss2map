@@ -45,15 +45,17 @@ namespace gnss2map
     {
         sub_gnss_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gnss/fix", 2, std::bind(&GaussKruger::cbGnss, this, std::placeholders::_1));
         pub_odom_gnss_ = this->create_publisher<nav_msgs::msg::Odometry>("odom/gnss", 2);
+        pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("gnss_pose", 2);
     }
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
     {
         double rad_phi = msg->latitude*M_PI/180;
         double rad_lambda = msg->longitude*M_PI/180;
-        double x, y, gamma;
-        gaussKruger(rad_phi, rad_lambda, x, y, gamma);
+        double x, y;
+        gaussKruger(rad_phi, rad_lambda, x, y);
         pubOdomGnss(x, y);
+        pubGnssPose(x, y);
     }
 
     void GaussKruger::initVariable()
@@ -89,29 +91,25 @@ namespace gnss2map
         kt_ = 2*sqrt(n) / (1+n);
         kx_ = 1, ky_ = 1; 
 
-        double x, y, gamma;
-        gaussKruger(gnss1_[0], gnss1_[1], x, y, gamma);
+        double x, y;
+        gaussKruger(gnss1_[0], gnss1_[1], x, y);
         kx_ = p1_[0] / x;
         ky_ = p1_[1] / y;
         // RCLCPP_INFO(get_logger(), "kx: %lf, ky: %lf", kx_, ky_);
     }
 
-    void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y, double &gamma)
+    void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
     {
         double t = sinh(atanh(sin(rad_phi)) - kt_*atanh(kt_*sin(rad_phi)));
         double t_bar = sqrt(1+pow(t, 2));
         double diff_lambda = rad_lambda - gnss0_[1];
         double lambda_cos = cos(diff_lambda), lambda_sin = sin(diff_lambda);
-        double zeta = atan(t / lambda_cos), eta = atanh(lambda_sin / t_bar);
-        // RCLCPP_INFO(this->get_logger(), "diff_l: %lf, lc: %lf, ls: %lf, zeta: %lf, eta:%lf", diff_lambda, lambda_cos, lambda_sin, zeta, eta);
+        double zeta = atan2(t, lambda_cos), eta = atanh(lambda_sin / t_bar);
         x = zeta;
         y = eta;
-        double sigma = 1, tau = 0;
         for(int i=1; i<=5; ++i){
             x += alpha_[i-1] * sin(2*i*zeta) * cosh(2*i*eta);
             y += alpha_[i-1] * cos(2*i*zeta) * sinh(2*i*eta);
-            sigma += 2 * i * alpha_[i-1] * cos(2*i*zeta) * cosh(2*i*eta);
-            tau += 2 * i * alpha_[i-1] * sin(2*i*zeta) * sinh(2*i*eta);
         }
         x = x * A_bar_ - S_bar_phi0_;
         y *= A_bar_;
@@ -121,18 +119,27 @@ namespace gnss2map
         y *= ky_;
         x += p0_[0];
         y = p0_[1]-y;
-        gamma = atan((tau*t_bar*lambda_cos + sigma*t*lambda_sin) / (sigma*t_bar*lambda_cos - tau*t*lambda_sin));
-        // RCLCPP_INFO(this->get_logger(), "x:%lf, y:%lf, gamma: %lf", x0_+x, y0_+y, gamma);
     }
 
     void GaussKruger::pubOdomGnss(double x, double y)
     {
         nav_msgs::msg::Odometry odom;
+        odom.header.stamp = now();
         odom.header.frame_id = "map";
         odom.child_frame_id = "base_footprint";
         odom.pose.pose.position.x = x;
         odom.pose.pose.position.y = y;
         pub_odom_gnss_->publish(odom);
+    }
+
+    void GaussKruger::pubGnssPose(double x, double y)
+    {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.frame_id = "map";
+        pose.header.stamp = now();
+        pose.pose.position.x = x;
+        pose.pose.position.y = y;
+        pub_gnss_pose_->publish(pose);
     }
 }
 
