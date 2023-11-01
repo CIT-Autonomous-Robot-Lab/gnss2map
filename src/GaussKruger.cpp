@@ -27,6 +27,7 @@ namespace gnss2map
         this->declare_parameter("F", 298.257222);
         this->declare_parameter("m0", 0.9999);
         this->declare_parameter("theta_offset", 0.0);
+        this->declare_parameter("ignore_th_cov", 16.0);
     }
 
     void GaussKruger::getParam()
@@ -39,6 +40,7 @@ namespace gnss2map
         this->get_parameter("F", F_);
         this->get_parameter("m0", m0_);
         this->get_parameter("theta_offset", theta_offset_);
+        this->get_parameter("ignore_th_cov", ignore_th_cov_);
     }
 
     void GaussKruger::initPubSub()
@@ -50,10 +52,16 @@ namespace gnss2map
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
     {
-        double rad_phi = msg->latitude*M_PI/180;
-        double rad_lambda = msg->longitude*M_PI/180;
+        double covariance = msg->position_covariance[0];
+        int8_t status = msg->status.status;
         double x, y;
-        gaussKruger(rad_phi, rad_lambda, x, y);
+        if(covariance > ignore_th_cov_ || status == NO_FIX){
+            x = NAN; y = NAN;
+        } else {
+            double rad_phi = msg->latitude*M_PI/180;
+            double rad_lambda = msg->longitude*M_PI/180;
+            gaussKruger(rad_phi, rad_lambda, x, y);
+        }
         pubOdomGnss(x, y);
         pubGnssPose(x, y);
     }

@@ -4,6 +4,8 @@
 #ifndef GNSS2MAP__GAUSSKRUGER_HPP_
 #define GNSS2MAP__GAUSSKRUGER_HPP_
 
+#define NO_FIX -1
+
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -26,6 +28,7 @@ class GaussKruger : public rclcpp::Node
     double A_bar_, S_bar_phi0_;
     double kt_;
     double kx_, ky_;
+    double ignore_th_cov_;
     
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;

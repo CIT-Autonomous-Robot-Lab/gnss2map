@@ -8,3 +8,4 @@
     F: 298.257222
     m0: 0.9999
     theta_offset: -17.5
+    ignore_th_cov: 16.0
