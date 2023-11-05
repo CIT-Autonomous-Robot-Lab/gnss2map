@@ -11,6 +11,8 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <vector>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 namespace gnss2map
 {
@@ -29,6 +31,11 @@ class GaussKruger : public rclcpp::Node
     double kt_;
     double kx_, ky_;
     double ignore_th_cov_;
+
+    // Eigen::Matrix2d R_;
+    Eigen::Matrix2d K_;
+    Eigen::Rotation2Df R_;
+
     
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;

@@ -73,7 +73,7 @@ namespace gnss2map
             gnss1_[i] *= M_PI/180;
         }
 
-        rad_theta_offset_ = theta_offset_*M_PI/180;
+        // rad_theta_offset_ = theta_offset_*M_PI/180;
 
         double n = 1 / (2 * F_ - 1);
         double n2 = pow(n, 2), n3 = pow(n, 3), n4 = pow(n, 4), n5 = pow(n, 5);
@@ -99,11 +99,15 @@ namespace gnss2map
         kt_ = 2*sqrt(n) / (1+n);
         kx_ = 1, ky_ = 1; 
 
-        double x, y;
-        gaussKruger(gnss1_[0], gnss1_[1], x, y);
-        kx_ = p1_[0] / x;
-        ky_ = p1_[1] / y;
-        // RCLCPP_INFO(get_logger(), "kx: %lf, ky: %lf", kx_, ky_);
+        double x0, y0, x1, y1;
+        gaussKruger(gnss0_[0], gnss0_[1], x0, y0);
+        gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
+        double theta = atan2(y1-y0, x1-x0) - atan2(p1_[1]-p0_[1], p1_[0]-p0_[0]);
+        rad_theta_offset_ = theta;
+        gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
+        kx_ = p1_[0] / x1;
+        ky_ = p1_[1] / y1;
+        RCLCPP_INFO(get_logger(), "kx: %lf, ky: %lf, theta: %lf", kx_, ky_, theta);
     }
 
     void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
@@ -121,12 +125,14 @@ namespace gnss2map
         }
         x = x * A_bar_ - S_bar_phi0_;
         y *= A_bar_;
-        x = x*cos(rad_theta_offset_) - y*sin(rad_theta_offset_);
-        x *= kx_;
-        y = x*sin(rad_theta_offset_) + y*cos(rad_theta_offset_);
-        y *= ky_;
-        x += p0_[0];
-        y = p0_[1]-y;
+        double x_res = x*cos(rad_theta_offset_) - y*sin(rad_theta_offset_);
+        x_res *= kx_;
+        double y_res = x*sin(rad_theta_offset_) + y*cos(rad_theta_offset_);
+        // x = x_res;
+        // y = -y_res;
+        y_res *= ky_;
+        x = x_res + p0_[0];
+        y = p0_[1]-y_res;
     }
 
     void GaussKruger::pubOdomGnss(double x, double y)

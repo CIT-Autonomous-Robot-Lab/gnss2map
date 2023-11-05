@@ -12,7 +12,7 @@ def generate_launch_description():
     config = os.path.join(
         get_package_share_directory(package), 
         "config", 
-        "GaussKruger.param.yaml"
+        "params/GaussKruger.param.yaml"
     )
     
     node = Node(
@@ -20,7 +20,7 @@ def generate_launch_description():
         name="gauss_kruger_node", 
         executable="gauss_kruger_node", 
         parameters=[config], 
-        # remappings=[("gnss/fix", "/fix")]
+        remappings=[("gnss/fix", "/fix")]
     )
     
     ld = LaunchDescription()
