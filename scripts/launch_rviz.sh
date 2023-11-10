@@ -1,0 +1,1 @@
+rviz2 -d /home/ubuntu/ros2_ws/src/gnss2map/config/rviz/rviz.rviz
