@@ -21,7 +21,6 @@ def generate_launch_description():
         name="gauss_kruger_node", 
         executable="gauss_kruger_node", 
         parameters=[config], 
-        # remappings=[("gnss/fix", "/fix")]
     )
     
     ld = LaunchDescription()

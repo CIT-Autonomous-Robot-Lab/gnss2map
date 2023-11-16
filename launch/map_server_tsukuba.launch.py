@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Tatsuhiro Ikebe <beike315@icloud.com>
+# SPDX-FileCopyrightText: 2023 MakotoYoshigoe
 # SPDX-License-Identifier: Apache-2.0
 
 import os
@@ -16,12 +16,6 @@ from launch_ros.events import lifecycle
 from launch_ros.event_handlers import OnStateTransition
 
 from lifecycle_msgs.msg import Transition
-from launch.actions import (
-    DeclareLaunchArgument,
-    GroupAction,
-    IncludeLaunchDescription,
-    SetEnvironmentVariable,
-)
 from launch_ros.actions import Node
 
 
@@ -79,23 +73,19 @@ def generate_launch_description():
             ],
         )
     )
-    
     package = "gnss2map"
     config = os.path.join(
         get_package_share_directory(package), 
         "config", 
-        "params", 
-        "tsukuba.param.yaml"
+        "rviz", 
+        "rviz.rviz"
     )
-    
     node = Node(
-        package=package, 
-        name="gauss_kruger_node", 
-        executable="gauss_kruger_node", 
-        parameters=[config], 
-        # remappings=[("gnss/fix", "/fix")]
-    )
-
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=[
+            '-d', config])
     ld = LaunchDescription()
     ld.add_action(node)
     ld.add_action(map_server_node)
