@@ -46,10 +46,14 @@ namespace gnss2map
         sub_gnss_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gnss/fix", 2, std::bind(&GaussKruger::cbGnss, this, std::placeholders::_1));
         pub_odom_gnss_ = this->create_publisher<nav_msgs::msg::Odometry>("odom/gnss", 2);
         pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("gnss_pose", 2);
+        map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+            "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(), 
+            std::bind(&GaussKruger::cbMap, this, std::placeholders::_1));
     }
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
     {
+        if(!recieved_map_) return;
         double covariance = msg->position_covariance[0];
         int8_t status = msg->status.status;
         double x, y;
@@ -59,13 +63,25 @@ namespace gnss2map
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
+            if(!checkRange(x, y)){
+                x = NAN, y = NAN;
+            }
         }
         pubOdomGnss(x, y);
         pubGnssPose(x, y);
     }
 
+    void GaussKruger::cbMap(nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg)
+    {
+        if(recieved_map_) return;
+        map_ = *msg;
+        RCLCPP_INFO(this->get_logger(), "Recieved map");
+        recieved_map_ = true;
+    }
+
     void GaussKruger::initVariable()
     {
+        recieved_map_ = false;
         for(int i=0; i<2; ++i){
             gnss0_[i] *= M_PI/180;
             gnss1_[i] *= M_PI/180;
@@ -147,6 +163,18 @@ namespace gnss2map
         pose.pose.position.x = x;
         pose.pose.position.y = y;
         pub_gnss_pose_->publish(pose);
+    }
+
+    bool GaussKruger::checkRange(double x, double y)
+    {
+        int i = xy2Index(x, y);
+        if(i >= 0 && i < map_.info.height * map_.info.width) return true;
+        return false;
+    }
+
+    int GaussKruger::xy2Index(double x, double y)
+    { 
+        return static_cast<int>(x / map_.info.resolution + map_.info.width *  y / map_.info.resolution); 
     }
 }
 
