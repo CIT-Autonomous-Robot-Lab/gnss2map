@@ -73,9 +73,9 @@ def generate_launch_description():
             ],
         )
     )
-    package = "gnss2map"
+    
     config = os.path.join(
-        get_package_share_directory(package), 
+        gnss2map_dir, 
         "config", 
         "rviz", 
         "rviz.rviz"
