@@ -7,5 +7,9 @@
     a: 6378137.0
     F: 298.257222
     m0: 0.9999
+<<<<<<< HEAD
     ignore_th_cov: 1000.0 
+=======
+    ignore_th_cov: 16.0 
+>>>>>>> a3bc849 (Change p1 and gnss1)
 
