@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 namespace gnss2map
 {
@@ -39,6 +40,7 @@ class GaussKruger : public rclcpp::Node
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_gnss_pose_;
 	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
+    // rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initialpose_sub_;
 
     nav_msgs::msg::OccupancyGrid map_;
 
@@ -52,8 +54,9 @@ class GaussKruger : public rclcpp::Node
     void printVariable();
     void pubOdomGnss(double x, double y);
     void pubGnssPose(double x, double y);
-    bool checkRange(double x, double y);
-    int xy2Index(double x, double y);
+    bool outOfRange(double x, double y);
+    double xy2Index(double x, double y);
+    // void initialposeCb(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 };
 }
 

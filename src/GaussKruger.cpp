@@ -49,6 +49,7 @@ namespace gnss2map
         map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
             "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(), 
             std::bind(&GaussKruger::cbMap, this, std::placeholders::_1));
+        // initialpose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("initialpose", 2, std::bind(&GaussKruger::initialposeCb, this, std::placeholders::_1));
     }
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
@@ -63,8 +64,10 @@ namespace gnss2map
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
-            if(!checkRange(x, y)){
-                x = NAN, y = NAN;
+            if(outOfRange(x, y)){
+                // RCLCPP_INFO(this->get_logger(), "Out");
+                x = NAN;
+                y = NAN;
             }
         }
         pubOdomGnss(x, y);
@@ -78,6 +81,14 @@ namespace gnss2map
         RCLCPP_INFO(this->get_logger(), "Recieved map");
         recieved_map_ = true;
     }
+
+    // void GaussKruger::initialposeCb(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg)
+    // {
+    //     double i = xy2Index(msg->pose.pose.position.x, msg->pose.pose.position.y);
+    //     double x = 290., y = 200.;
+    //     RCLCPP_INFO(this->get_logger(), "(%lf, %lf): %lf", x, y, xy2Index(x, y));
+    //     RCLCPP_INFO(this->get_logger(), "Index: %lf", i);
+    // }
 
     void GaussKruger::initVariable()
     {
@@ -165,16 +176,24 @@ namespace gnss2map
         pub_gnss_pose_->publish(pose);
     }
 
-    bool GaussKruger::checkRange(double x, double y)
+    bool GaussKruger::outOfRange(double x, double y)
     {
-        int i = xy2Index(x, y);
-        if(i >= 0 && i < map_.info.height * map_.info.width) return true;
+        double i = xy2Index(x, y);
+        // double xl = 294.4, yl = map_.info.height * map_.info.resolution;
+        // int tmp_i = static_cast<int>(xy2Index(xl, yl));
+        // RCLCPP_INFO(this->get_logger(), "(%lf, %lf): %d, val: %d", xl, yl, tmp_i, map_.data[tmp_i]);
+        if(std::isnan(i)) return true;
         return false;
+        // RCLCPP_INFO(this->get_logger(), "(x, y)=(%lf, %lf), i: %lf, max_i: %d, w: %d, h: %d", 
+        // x, y, i, map_.data.size(), map_.info.width, map_.info.height);
     }
 
-    int GaussKruger::xy2Index(double x, double y)
-    { 
-        return static_cast<int>(x / map_.info.resolution + map_.info.width *  y / map_.info.resolution); 
+    double GaussKruger::xy2Index(double x, double y)
+    {
+        if(x < 0 || y < 0 || x >= map_.info.width || y >= map_.info.height) return NAN;
+        double ix = x / map_.info.resolution;
+        double iy = y / map_.info.resolution;
+        return ix + map_.info.width * iy;
     }
 }
 
