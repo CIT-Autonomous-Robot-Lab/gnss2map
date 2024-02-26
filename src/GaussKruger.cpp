@@ -4,6 +4,7 @@
 #include "gnss2map/GaussKruger.hpp"
 #include <cmath>
 #include <vector>
+#include <array>
 
 namespace gnss2map
 {
@@ -27,6 +28,7 @@ namespace gnss2map
         this->declare_parameter("F", 298.257222);
         this->declare_parameter("m0", 0.9999);
         this->declare_parameter("ignore_th_cov", 16.0);
+        this->declare_parameter("range_limit", std::vector<double>(4, 0.0));
     }
 
     void GaussKruger::getParam()
@@ -39,23 +41,21 @@ namespace gnss2map
         this->get_parameter("F", F_);
         this->get_parameter("m0", m0_);
         this->get_parameter("ignore_th_cov", ignore_th_cov_);
+        this->get_parameter("range_limit", range_limit_);
     }
 
     void GaussKruger::initPubSub()
     {
         sub_gnss_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gnss/fix", 2, std::bind(&GaussKruger::cbGnss, this, std::placeholders::_1));
         pub_odom_gnss_ = this->create_publisher<nav_msgs::msg::Odometry>("odom/gnss", 2);
-        pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("gnss_pose", 2);
-        map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-            "map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(), 
-            std::bind(&GaussKruger::cbMap, this, std::placeholders::_1));
-        // initialpose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("initialpose", 2, std::bind(&GaussKruger::initialposeCb, this, std::placeholders::_1));
+        pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("gnss_pose", 2);
     }
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
     {
-        if(!recieved_map_) return;
         double covariance = msg->position_covariance[0];
+        std::array<double, 9UL> cov = msg->position_covariance;
+        // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
         int8_t status = msg->status.status;
         double x, y;
         if(covariance > ignore_th_cov_ || status == NO_FIX){
@@ -71,24 +71,8 @@ namespace gnss2map
             }
         }
         pubOdomGnss(x, y);
-        pubGnssPose(x, y);
+        pubGnssPose(x, y, cov[0], cov[4]);
     }
-
-    void GaussKruger::cbMap(nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg)
-    {
-        if(recieved_map_) return;
-        map_ = *msg;
-        RCLCPP_INFO(this->get_logger(), "Recieved map");
-        recieved_map_ = true;
-    }
-
-    // void GaussKruger::initialposeCb(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg)
-    // {
-    //     double i = xy2Index(msg->pose.pose.position.x, msg->pose.pose.position.y);
-    //     double x = 290., y = 200.;
-    //     RCLCPP_INFO(this->get_logger(), "(%lf, %lf): %lf", x, y, xy2Index(x, y));
-    //     RCLCPP_INFO(this->get_logger(), "Index: %lf", i);
-    // }
 
     void GaussKruger::initVariable()
     {
@@ -120,6 +104,7 @@ namespace gnss2map
         S_bar_phi0_ *= m0_*a_ /(1+n);
 
         kt_ = 2*sqrt(n) / (1+n);
+
         K_ << 1., 0., 0., 1.;
         double rad_theta_offset_ = 0.0;
         R_ = Eigen::Rotation2Dd(rad_theta_offset_);
@@ -129,6 +114,7 @@ namespace gnss2map
         gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
         rad_theta_offset_ = atan2(y1-y0, x1-x0) - atan2(p1_[1]-p0_[1], p1_[0]-p0_[0]);
         R_ = Eigen::Rotation2Dd(rad_theta_offset_);
+
         gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
         K_ << p1_[0] / x1, 0., 0., p1_[1] / y1;
         RCLCPP_INFO(get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
@@ -166,34 +152,21 @@ namespace gnss2map
         pub_odom_gnss_->publish(odom);
     }
 
-    void GaussKruger::pubGnssPose(double x, double y)
+    void GaussKruger::pubGnssPose(double x, double y, double dev_x, double dev_y)
     {
-        geometry_msgs::msg::PoseStamped pose;
+        geometry_msgs::msg::PoseWithCovarianceStamped pose;
         pose.header.frame_id = "map";
         pose.header.stamp = now();
-        pose.pose.position.x = x;
-        pose.pose.position.y = y;
+        pose.pose.pose.position.x = x;
+        pose.pose.pose.position.y = y;
+        pose.pose.covariance[0] = dev_x;
+	    pose.pose.covariance[7] = dev_y;
         pub_gnss_pose_->publish(pose);
     }
 
     bool GaussKruger::outOfRange(double x, double y)
     {
-        double i = xy2Index(x, y);
-        // double xl = 294.4, yl = map_.info.height * map_.info.resolution;
-        // int tmp_i = static_cast<int>(xy2Index(xl, yl));
-        // RCLCPP_INFO(this->get_logger(), "(%lf, %lf): %d, val: %d", xl, yl, tmp_i, map_.data[tmp_i]);
-        if(std::isnan(i)) return true;
-        return false;
-        // RCLCPP_INFO(this->get_logger(), "(x, y)=(%lf, %lf), i: %lf, max_i: %d, w: %d, h: %d", 
-        // x, y, i, map_.data.size(), map_.info.width, map_.info.height);
-    }
-
-    double GaussKruger::xy2Index(double x, double y)
-    {
-        if(x < 0 || y < 0 || x >= map_.info.width || y >= map_.info.height) return NAN;
-        double ix = x / map_.info.resolution;
-        double iy = y / map_.info.resolution;
-        return ix + map_.info.width * iy;
+        return (x < range_limit_[0]  || y < range_limit_[1] || x >= range_limit_[2] || y >= range_limit_[3]);
     }
 }
 

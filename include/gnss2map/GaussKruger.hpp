@@ -32,17 +32,14 @@ class GaussKruger : public rclcpp::Node
     double kt_;
     double ignore_th_cov_;
     bool recieved_map_;
+    std::vector<double> range_limit_;
 
     Eigen::Matrix2d K_;
     Eigen::Rotation2Dd R_;
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_gnss_pose_;
-	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-    // rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initialpose_sub_;
-
-    nav_msgs::msg::OccupancyGrid map_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_gnss_pose_;
 
     void initPubSub();
     void setParam();
@@ -53,10 +50,8 @@ class GaussKruger : public rclcpp::Node
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
     void pubOdomGnss(double x, double y);
-    void pubGnssPose(double x, double y);
+    void pubGnssPose(double x, double y, double dev_x, double dev_y);
     bool outOfRange(double x, double y);
-    double xy2Index(double x, double y);
-    // void initialposeCb(geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr msg);
 };
 }
 
