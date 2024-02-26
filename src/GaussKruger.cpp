@@ -63,11 +63,13 @@ namespace gnss2map
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
-            if(!checkRange(x, y)){
-                x = NAN, y = NAN;
+	    if(!checkRange(x, y)){
+                RCLCPP_INFO(this->get_logger(), "Out");
+                x = NAN;
+                y = NAN;
             }
-        }
-        pubOdomGnss(x, y);
+	}
+	pubOdomGnss(x, y);
         pubGnssPose(x, y);
     }
 
@@ -167,7 +169,8 @@ namespace gnss2map
 
     bool GaussKruger::checkRange(double x, double y)
     {
-        int i = xy2Index(x, y);
+	    int i = xy2Index(x, y);
+        RCLCPP_INFO(this->get_logger(), "i: %d, max_i: %d", i, map_.info.height * map_.info.width);
         if(i >= 0 && i < map_.info.height * map_.info.width) return true;
         return false;
     }
