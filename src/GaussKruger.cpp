@@ -53,6 +53,7 @@ namespace gnss2map
 
     void GaussKruger::cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg)
     {
+        if(!recieved_map_) return;
         double covariance = msg->position_covariance[0];
         std::array<double, 9UL> cov = msg->position_covariance;
         // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
@@ -72,6 +73,14 @@ namespace gnss2map
         }
         pubOdomGnss(x, y);
         pubGnssPose(x, y, cov[0], cov[4]);
+    }
+
+    void GaussKruger::cbMap(nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg)
+    {
+        if(recieved_map_) return;
+        map_ = *msg;
+        RCLCPP_INFO(this->get_logger(), "Recieved map");
+        recieved_map_ = true;
     }
 
     void GaussKruger::initVariable()
