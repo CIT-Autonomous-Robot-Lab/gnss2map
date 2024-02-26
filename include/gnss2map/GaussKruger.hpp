@@ -31,7 +31,7 @@ class GaussKruger : public rclcpp::Node
     double A_bar_, S_bar_phi0_;
     double kt_;
     double ignore_th_cov_;
-    bool recieved_map_;
+    std::vector<double> range_limit_;
 
     Eigen::Matrix2d K_;
     Eigen::Rotation2Dd R_;
