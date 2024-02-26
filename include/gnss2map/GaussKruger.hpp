@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 namespace gnss2map
 {
@@ -37,10 +38,7 @@ class GaussKruger : public rclcpp::Node
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_gnss_pose_;
-	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-
-    nav_msgs::msg::OccupancyGrid map_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_gnss_pose_;
 
     void initPubSub();
     void setParam();
@@ -51,9 +49,8 @@ class GaussKruger : public rclcpp::Node
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
     void pubOdomGnss(double x, double y);
-    void pubGnssPose(double x, double y);
-    bool checkRange(double x, double y);
-    int xy2Index(double x, double y);
+    void pubGnssPose(double x, double y, double dev_x, double dev_y);
+    bool outOfRange(double x, double y);
 };
 }
 

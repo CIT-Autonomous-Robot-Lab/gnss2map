@@ -89,9 +89,9 @@ def generate_launch_description():
     
     ld = LaunchDescription()
     ld.add_action(node)
-    ld.add_action(map_server_node)
-    ld.add_action(register_activating_transition)
-    ld.add_action(register_shutting_down_transition)
-    ld.add_action(emit_configuring_event)
+    # ld.add_action(map_server_node)
+    # ld.add_action(register_activating_transition)
+    # ld.add_action(register_shutting_down_transition)
+    # ld.add_action(emit_configuring_event)
     
     return ld
