@@ -6,24 +6,39 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import EmitEvent
-from launch.actions import RegisterEventHandler
-from launch.events import matches_action
-from launch.events import Shutdown
+from launch.actions import EmitEvent, RegisterEventHandler, DeclareLaunchArgument
+from launch.events import matches_action, Shutdown
 
-from launch_ros.actions import LifecycleNode
+from launch_ros.actions import LifecycleNode, Node
 from launch_ros.events import lifecycle
 from launch_ros.event_handlers import OnStateTransition
+from launch.substitutions import TextSubstitution, LaunchConfiguration
 
 from lifecycle_msgs.msg import Transition
-from launch_ros.actions import Node
 
 def generate_launch_description():
-    gnss2map_dir = get_package_share_directory('gnss2map')
-    map_dir = os.path.join(gnss2map_dir, 'config', 'map')
+    params_file = LaunchConfiguration('params_file')
+    declare_params_file = DeclareLaunchArgument(
+        'params_file', 
+        default_value=[
+            TextSubstitution(text=os.path.join(
+                get_package_share_directory('gnss2map'), 
+                'config', 'params', '')), 
+            TextSubstitution(text='tsudanuma.param.yaml')
+        ], 
+        description='gnss2map param file path'
+    )
+    
+    node = Node(
+        package="gnss2map", 
+        name="gauss_kruger_node", 
+        executable="gauss_kruger_node", 
+        parameters=[params_file], 
+    )
+    
+    map_dir = os.path.join(get_package_share_directory('gnss2map'), 'config', 'map')
     map_file = os.path.join(
         map_dir, 'tsudanuma', 'map_tsudanuma.yaml')
-
     map_server_node = LifecycleNode(
         namespace='',
         name='map_server',
@@ -73,21 +88,8 @@ def generate_launch_description():
         )
     )
     
-    config = os.path.join(
-        gnss2map_dir, 
-        "config", 
-        "params", 
-        "tsudanuma.param.yaml"
-    )
-    
-    node = Node(
-        package="gnss2map", 
-        name="gauss_kruger_node", 
-        executable="gauss_kruger_node", 
-        parameters=[config], 
-    )
-    
     ld = LaunchDescription()
+    ld.add_action(declare_params_file)
     ld.add_action(node)
     # ld.add_action(map_server_node)
     # ld.add_action(register_activating_transition)

@@ -18,79 +18,34 @@ from launch_ros.event_handlers import OnStateTransition
 from lifecycle_msgs.msg import Transition
 from launch_ros.actions import Node
 
+# SPDX-FileCopyrightText: 2023 Makoto Yoshigoe myoshigo0127@gmail.com
+# SPDX-License-Identifier: Apache-2.0
 
-def generate_launch_description():
-    gnss2map_dir = get_package_share_directory('gnss2map')
-    map_dir = os.path.join(gnss2map_dir, 'config', 'map')
-    map_file = os.path.join(
-        map_dir, 'tsukuba', 'map_tsukuba.yaml')
+import os
 
-    map_server_node = LifecycleNode(
-        namespace='',
-        name='map_server',
-        package='nav2_map_server',
-        executable='map_server',
-        output='screen',
-        parameters=[
-                {'yaml_filename': map_file}
-        ]
-    )
+from ament_index_python.packages import get_package_share_directory
 
-    emit_configuring_event = EmitEvent(
-        event=lifecycle.ChangeState(
-            lifecycle_node_matcher=matches_action(map_server_node),
-            transition_id=Transition.TRANSITION_CONFIGURE,
-        )
-    )
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
 
-    emit_activating_event = EmitEvent(
-        event=lifecycle.ChangeState(
-            lifecycle_node_matcher=matches_action(map_server_node),
-            transition_id=Transition.TRANSITION_ACTIVATE,
-        )
-    )
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import TextSubstitution
 
-    emit_shutdown_event = EmitEvent(
-        event=Shutdown()
-    )
 
-    register_activating_transition = RegisterEventHandler(
-        OnStateTransition(
-            target_lifecycle_node=map_server_node,
-            goal_state='inactive',
-            entities=[
-                emit_activating_event
-            ],
-        )
+def generate_launch_description():    
+    tsukuba_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            TextSubstitution(text=os.path.join(
+                    get_package_share_directory('gnss2map'), 
+                    'launch', 'map_server_tsudanuma.launch.py'))]),
+        launch_arguments={
+            "map_path": [
+            TextSubstitution(text=os.path.join(
+                    get_package_share_directory('gnss2map'), 
+                    'config', 'map', 'tsukuba', 'map_tsukuba.yaml'))],
+        }.items()
     )
-
-    register_shutting_down_transition = RegisterEventHandler(
-        OnStateTransition(
-            target_lifecycle_node=map_server_node,
-            goal_state='finalized',
-            entities=[
-                emit_shutdown_event
-            ],
-        )
-    )
-    package = "gnss2map"
-    config = os.path.join(
-        get_package_share_directory(package), 
-        "config", 
-        "rviz", 
-        "rviz.rviz"
-    )
-    node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=[
-            '-d', config])
     ld = LaunchDescription()
-    ld.add_action(node)
-    ld.add_action(map_server_node)
-    ld.add_action(register_activating_transition)
-    ld.add_action(register_shutting_down_transition)
-    ld.add_action(emit_configuring_event)
-
+    ld.add_action(tsukuba_launch)
+    
     return ld
