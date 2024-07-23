@@ -20,8 +20,8 @@ namespace gnss2map
 
     void GaussKruger::setParam()
     {
-        this->declare_parameter("p0", std::vector<double>(2, 0.0));
-        this->declare_parameter("gnss0", std::vector<double>(2, 0.0));
+        this->declare_parameter("p0", std::vector<double>(3, 0.0));
+        this->declare_parameter("gnss0", std::vector<double>(3, 0.0));
         this->declare_parameter("p1", std::vector<double>(2, 0.0));
         this->declare_parameter("gnss1", std::vector<double>(2, 0.0));
         this->declare_parameter("a", 6378137.0);
@@ -57,9 +57,9 @@ namespace gnss2map
         std::array<double, 9UL> cov = msg->position_covariance;
         // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
         int8_t status = msg->status.status;
-        double x, y;
+        double x, y, z = msg->altitude + offset_z_;
         if(covariance > ignore_th_cov_ || status == NO_FIX){
-            x = NAN, y = NAN;
+            x = NAN, y = NAN, z = NAN;
         } else {
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
@@ -70,8 +70,8 @@ namespace gnss2map
                 y = NAN;
             }
         }
-        pubOdomGnss(x, y);
-        pubGnssPose(x, y, cov[0], cov[4]);
+        pubOdomGnss(x, y, z);
+        pubGnssPose(x, y, z, cov[0], cov[4], cov[8]);
     }
 
     void GaussKruger::initVariable()
@@ -80,7 +80,7 @@ namespace gnss2map
             gnss0_[i] *= M_PI/180;
             gnss1_[i] *= M_PI/180;
         }
-
+        offset_z_ = p0_[2] - gnss0_[2];
         double n = 1 / (2 * F_ - 1);
         double n2 = pow(n, 2), n3 = pow(n, 3), n4 = pow(n, 4), n5 = pow(n, 5);
         alpha_[0] = n/2 - 2.*n2/3 + 5.*n3/16 + 41.*n4/180 - 127.*n5/288;
@@ -140,7 +140,7 @@ namespace gnss2map
         y = -p(1) + p0_[1];
     }
 
-    void GaussKruger::pubOdomGnss(double x, double y)
+    void GaussKruger::pubOdomGnss(double x, double y, double z)
     {
         nav_msgs::msg::Odometry odom;
         odom.header.stamp = now();
@@ -148,18 +148,21 @@ namespace gnss2map
         odom.child_frame_id = "base_footprint";
         odom.pose.pose.position.x = x;
         odom.pose.pose.position.y = y;
+        odom.pose.pose.position.z = z;
         pub_odom_gnss_->publish(odom);
     }
 
-    void GaussKruger::pubGnssPose(double x, double y, double dev_x, double dev_y)
+    void GaussKruger::pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z)
     {
         geometry_msgs::msg::PoseWithCovarianceStamped pose;
         pose.header.frame_id = "map";
         pose.header.stamp = now();
         pose.pose.pose.position.x = x;
         pose.pose.pose.position.y = y;
+        pose.pose.pose.position.z = z;
         pose.pose.covariance[0] = dev_x;
 	    pose.pose.covariance[7] = dev_y;
+        pose.pose.covariance[14] = dev_z;
         pub_gnss_pose_->publish(pose);
     }
 

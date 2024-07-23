@@ -31,6 +31,8 @@ class GaussKruger : public rclcpp::Node
     double A_bar_, S_bar_phi0_;
     double kt_;
     double ignore_th_cov_;
+    double offset_z_;
+
     std::vector<double> range_limit_;
 
     Eigen::Matrix2d K_;
@@ -48,8 +50,8 @@ class GaussKruger : public rclcpp::Node
     void initVariable();
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
-    void pubOdomGnss(double x, double y);
-    void pubGnssPose(double x, double y, double dev_x, double dev_y);
+    void pubOdomGnss(double x, double y, double z);
+    void pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z);
     bool outOfRange(double x, double y);
 };
 }
