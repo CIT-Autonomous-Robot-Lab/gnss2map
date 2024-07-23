@@ -22,6 +22,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     map_path = LaunchConfiguration('map_path')
     use_rviz = LaunchConfiguration('use_rviz')
+    namespace = LaunchConfiguration('namespace')
     
     declare_use_sim = DeclareLaunchArgument(
         'use_sim_time', 
@@ -41,12 +42,18 @@ def generate_launch_description():
         default_value='true'
     )
     
+    declare_namespace = DeclareLaunchArgument(
+        'namespace', 
+        default_value=TextSubstitution(text='')
+    )
+    
     lifecycle_nodes = ['map_server']
     
     launch_node = GroupAction(
         actions=[
             SetParameter('use_sim_time', use_sim_time), 
             Node(
+                namespace=namespace,
                 package='nav2_map_server',
                 executable='map_server',
                 name='map_server',
@@ -63,6 +70,7 @@ def generate_launch_description():
                 condition=IfCondition(use_rviz)
             ),
             Node(
+                namespace=namespace,
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
                 name='lifecycle_manager_localization',
@@ -76,6 +84,8 @@ def generate_launch_description():
     ld.add_action(declare_use_sim)
     ld.add_action(declare_use_rviz)
     ld.add_action(declare_map_path)
+    ld.add_action(declare_namespace)
+    
     ld.add_action(launch_node)
 
     return ld
