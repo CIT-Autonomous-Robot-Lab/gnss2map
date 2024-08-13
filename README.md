@@ -6,7 +6,7 @@ GNSSからの位置情報（緯度、経度、高度）をマップ内の座標�
 ### Input
 |Name (Topic)|Type|Description|
 |----|----|-----------|
-|```/gnss_fix```|```sensor_msgs::msg::NavSatFix```|GNSSの受信情報|
+|```/gnss/fix```|```sensor_msgs::msg::NavSatFix```|GNSSの受信情報|
 
 ### Input
 |Name (Topic)|Type|Description|
