@@ -33,7 +33,7 @@ class GaussKruger : public rclcpp::Node
     double ignore_th_cov_;
     double offset_z_;
 
-    std::vector<double> range_limit_;
+    // std::vector<double> range_limit_;
 
     Eigen::Matrix2d K_;
     Eigen::Rotation2Dd R_;
@@ -46,13 +46,12 @@ class GaussKruger : public rclcpp::Node
     void setParam();
     void getParam();
     void cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
-    void cbMap(nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg);
     void initVariable();
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
-    void pubOdomGnss(double x, double y, double z);
+    // void pubOdomGnss(double x, double y, double z);
     void pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z);
-    bool outOfRange(double x, double y);
+    // bool outOfRange(double x, double y);
 };
 }
 

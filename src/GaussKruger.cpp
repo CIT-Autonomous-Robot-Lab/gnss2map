@@ -28,7 +28,7 @@ namespace gnss2map
         this->declare_parameter("F", 298.257222);
         this->declare_parameter("m0", 0.9999);
         this->declare_parameter("ignore_th_cov", 16.0);
-        this->declare_parameter("range_limit", std::vector<double>(4, 0.0));
+        // this->declare_parameter("range_limit", std::vector<double>(4, 0.0));
     }
 
     void GaussKruger::getParam()
@@ -41,7 +41,7 @@ namespace gnss2map
         this->get_parameter("F", F_);
         this->get_parameter("m0", m0_);
         this->get_parameter("ignore_th_cov", ignore_th_cov_);
-        this->get_parameter("range_limit", range_limit_);
+        // this->get_parameter("range_limit", range_limit_);
     }
 
     void GaussKruger::initPubSub()
@@ -64,13 +64,13 @@ namespace gnss2map
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
-            if(outOfRange(x, y)){
-                // RCLCPP_INFO(this->get_logger(), "Out");
-                x = NAN;
-                y = NAN;
-            }
+            // if(outOfRange(x, y)){
+            //     RCLCPP_INFO(this->get_logger(), "Out");
+            //     x = NAN;
+            //     y = NAN;
+            // }
         }
-        pubOdomGnss(x, y, z);
+        // pubOdomGnss(x, y, z);
         pubGnssPose(x, y, z, cov[0], cov[4], cov[8]);
     }
 
@@ -116,7 +116,7 @@ namespace gnss2map
 
         gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
         K_ << p1_[0] / x1, 0., 0., p1_[1] / y1;
-        RCLCPP_INFO(get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
+        RCLCPP_INFO(this->get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
     }
 
     void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
@@ -140,17 +140,17 @@ namespace gnss2map
         y = -p(1) + p0_[1];
     }
 
-    void GaussKruger::pubOdomGnss(double x, double y, double z)
-    {
-        nav_msgs::msg::Odometry odom;
-        odom.header.stamp = now();
-        odom.header.frame_id = "map";
-        odom.child_frame_id = "base_footprint";
-        odom.pose.pose.position.x = x;
-        odom.pose.pose.position.y = y;
-        odom.pose.pose.position.z = z;
-        pub_odom_gnss_->publish(odom);
-    }
+    // void GaussKruger::pubOdomGnss(double x, double y, double z)
+    // {
+    //     nav_msgs::msg::Odometry odom;
+    //     odom.header.stamp = now();
+    //     odom.header.frame_id = "map";
+    //     odom.child_frame_id = "base_footprint";
+    //     odom.pose.pose.position.x = x;
+    //     odom.pose.pose.position.y = y;
+    //     odom.pose.pose.position.z = z;
+    //     pub_odom_gnss_->publish(odom);
+    // }
 
     void GaussKruger::pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z)
     {
@@ -166,10 +166,10 @@ namespace gnss2map
         pub_gnss_pose_->publish(pose);
     }
 
-    bool GaussKruger::outOfRange(double x, double y)
-    {
-        return (x < range_limit_[0]  || y < range_limit_[1] || x >= range_limit_[2] || y >= range_limit_[3]);
-    }
+    // bool GaussKruger::outOfRange(double x, double y)
+    // {
+    //     return (x < range_limit_[0]  || y < range_limit_[1] || x >= range_limit_[2] || y >= range_limit_[3]);
+    // }
 }
 
 int main(int argc, char ** argv)
