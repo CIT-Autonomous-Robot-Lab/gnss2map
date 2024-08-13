@@ -1,31 +1,36 @@
 # gnss2map
-GNSSからの情報をマップ内の座標に変換するパッケージ
+## package overview
+GNSSからの位置情報（緯度、経度、高度）をマップ内の座標（x, y, z）に変換するパッケージです。
 
-# パラメータ
-- p0(double_array, default:[164.29392211251695, 47.40068430031194]) 
-    - マップ内の任意の座標[x, y]
+## Input/Output
+### Input
+|Name (Topic)|Type|Description|
+|----|----|-----------|
+|```/gnss_fix```|```sensor_msgs::msg::NavSatFix```|GNSSの受信情報|
 
-- gnss0(double_array, default: [35.68933509666667, 140.02148523333332])
-    - p0にいるときに取得するGNSSからの座標[緯度, 経度]
+### Input
+|Name (Topic)|Type|Description|
+|----|----|-----------|
+|```/gnss_pose```|```geometry_msgs::msg::PoseWithCovarianceStamped```|マップ座標系におけるGNSSの位置情報|
 
-- p1(double_array, default:[59.33165740966797, 159.38681030273438]) 
-    - p0以外のマップ内の任意の座標[x, y]
+### Parameter
+|Name |Type|Description|
+|----|----|-----------|
+|```p0```|```std::vector<double>(3)```|マップ内の任意の座標（x, y, z）|
+|```gnss0```|```std::vector<double>(3)```|```p0```で取得するGNSSの位置情報(latitude, longitude, altitude)|
+|```p1```|```std::vector<double>(2)```|```p0```以外のマップ内の任意の座標（x, y）|
+|```gnss1```|```std::vector<double>(2)```|```p1```で取得するGNSSの位置情報(latitude, longitude)|
+|```a```|```double```|楕円体の長半径（変更の必要なし）|
+|```F```|```double```|楕円体の逆扁平率（変更の必要なし）|
+|```ignore_th_cov```|```double```|この値以上の共分散が観測された時```NAN```を出力する|
 
-- gnss1(double_array, default: [35.688686698333335, 140.02004203333334])
-    - p1にいるときに取得するGNSSからの座標[緯度, 経度]
-
-# トピック
-## Subscribed Topics
-- gnss/fix([sensor_msgs::msg::NavSatFix](https://docs.ros2.org/latest/api/sensor_msgs/msg/NavSatFix.html))
-    - GNSSのデータ
-## Published Topics
-- odom/gnss([nav_msgs::msg::Odometry](https://docs.ros2.org/foxy/api/nav_msgs/msg/Odometry.html))
-    - /gnss/fixから変換したmap内の座標
-
-# 実行方法
-1. 適切なパラメータを設定する
+## Usage
+1. ```config/params/gauss_kruger.param.yaml```に適切なパラメータを記述
 2. 以下のコマンドを実行する
 
 ```
 ros2 launch gnss2map gauss_kruger.launch.py
 ```
+
+## Reference
+- [経緯度を換算して平面直角座標、子午線収差角及び縮尺係数を求める計算](https://vldb.gsi.go.jp/sokuchi/surveycalc/surveycalc/algorithm/bl2xy/bl2xy.htm)(last visited: 2024/08/13)
