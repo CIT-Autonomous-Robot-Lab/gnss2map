@@ -8,7 +8,7 @@ GNSSからの位置情報（緯度、経度、高度）をマップ内の座標�
 |----|----|-----------|
 |```/gnss/fix```|```sensor_msgs::msg::NavSatFix```|GNSSの受信情報|
 
-### Input
+### Output
 |Name (Topic)|Type|Description|
 |----|----|-----------|
 |```/gnss_pose```|```geometry_msgs::msg::PoseWithCovarianceStamped```|マップ座標系におけるGNSSの位置情報|
