@@ -1,0 +1,49 @@
+name: build-test
+
+on:
+  push:
+    # branches:
+    #   - main
+    paths-ignore:
+      - '**.md'
+      - '**.param**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container: osrf/ros:humble-desktop
+    strategy:
+      matrix:
+        rosdistro:
+          - humble
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      
+      - name: Apt update
+        run: |
+          sudo apt update -y
+      
+      - name: Build Test
+        run: |
+          mkdir ../catkin_ws/src -p
+          cp -r ./* ../catkin_ws/src
+          cd ../catkin_ws
+          rosdep update
+          rosdep install -r -y --from-paths --ignore-src ./
+          source /opt/ros/humble/setup.bash
+          colcon build --symlink-install
+        shell: bash
+      
+      # - name : Ament Cpplint
+      #   run: |
+      #     source /opt/ros/humble/setup.bash
+      #     ament_cpplint src/ include/
+      #   shell: bash
+      
+      # - name : Colcon Test
+      #   run: |
+      #     colcon test-result --verbose
+
+     
