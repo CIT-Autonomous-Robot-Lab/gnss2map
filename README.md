@@ -1,4 +1,4 @@
-# gnss2map
+# gnss2map [![build-test](https://github.com/makotoyoshigoe/gnss2map/actions/workflows/build-test.yaml/badge.svg)](https://github.com/makotoyoshigoe/gnss2map/actions/workflows/build-test.yaml)
 ## package overview
 GNSSからの位置情報（緯度、経度、高度）をマップ内の座標（x, y, z）に変換するパッケージです。
 
