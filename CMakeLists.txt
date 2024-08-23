@@ -20,7 +20,7 @@ ament_auto_add_executable(gauss_kruger_node
   src/GaussKruger.cpp
 )
 
-ament_auto_add_executable(gnss_poser
+ament_auto_add_executable(gnss_poser_node
   src/GnssPoser.cpp
 )
 
