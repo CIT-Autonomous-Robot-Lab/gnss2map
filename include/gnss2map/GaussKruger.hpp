@@ -15,6 +15,7 @@
 #include <Eigen/Geometry>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include "geodesic.h"
 
 namespace gnss2map
 {

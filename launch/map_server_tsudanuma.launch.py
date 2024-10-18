@@ -29,12 +29,12 @@ def generate_launch_description():
         default_value = 'true'
     )
     
+    map_dir = os.path.join(get_package_share_directory('raspicat_navigation'), 'config', 'map')
+    map_file = os.path.join(map_dir, 'tsudanuma_campus', 'localization', 'map_tsudanuma_campus.yaml')
+    
     declare_map_path = DeclareLaunchArgument(
         'map_path',
-        default_value=[
-            TextSubstitution(text=os.path.join(
-                get_package_share_directory('gnss2map'), 'config', 'map', 'tsudanuma', '')), 
-            TextSubstitution(text='map_tsudanuma.yaml')],
+        default_value=[map_file],
         description='Full path to map yaml file to load')
     
     declare_use_rviz = DeclareLaunchArgument(

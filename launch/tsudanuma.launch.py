@@ -24,7 +24,7 @@ def generate_launch_description():
             TextSubstitution(text=os.path.join(
                 get_package_share_directory('gnss2map'), 
                 'config', 'params', '')), 
-            TextSubstitution(text='tsudanuma.param.yaml')
+            TextSubstitution(text='gauss_kruger.param.yaml')
         ], 
         description='gnss2map param file path'
     )
@@ -34,11 +34,12 @@ def generate_launch_description():
         name="gauss_kruger_node", 
         executable="gauss_kruger_node", 
         parameters=[params_file], 
+        # remappings=[('gnss/fix', '/vps/fix')], 
     )
     
-    map_dir = os.path.join(get_package_share_directory('gnss2map'), 'config', 'map')
+    map_dir = os.path.join(get_package_share_directory('raspicat_navigation'), 'config', 'map')
     map_file = os.path.join(
-        map_dir, 'tsudanuma', 'map_tsudanuma.yaml')
+        map_dir, 'tsudanuma_campus', 'localization', 'map_tsudanuma_campus.yaml')
     map_server_node = LifecycleNode(
         namespace='',
         name='map_server',

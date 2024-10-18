@@ -1,5 +1,5 @@
-image: map_tsudanuma.pgm
-resolution: 0.050000
+image: map_tsudanuma_new.pgm
+resolution: 0.10000
 origin: [0.000000, 0.000000, 0.000000]
 negate: 0
 occupied_thresh: 0.65
