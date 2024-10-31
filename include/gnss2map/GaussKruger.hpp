@@ -32,6 +32,7 @@ class GaussKruger : public rclcpp::Node
     double kt_;
     double ignore_th_cov_;
     double offset_z_;
+    double pre_x_, pre_y_, pre_theta_;
 
     // std::vector<double> range_limit_;
 
@@ -50,7 +51,7 @@ class GaussKruger : public rclcpp::Node
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
     // void pubOdomGnss(double x, double y, double z);
-    void pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z);
+    void pubGnssPose(double x, double y, double z, double theta, double dev_x, double dev_y, double dev_z);
     // bool outOfRange(double x, double y);
 };
 }

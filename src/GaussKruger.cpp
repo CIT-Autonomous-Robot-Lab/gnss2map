@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <array>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace gnss2map
 {
@@ -57,13 +58,29 @@ namespace gnss2map
         std::array<double, 9UL> cov = msg->position_covariance;
         // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
         int8_t status = msg->status.status;
-        double x, y, z = msg->altitude + offset_z_;
+        double x, y, z = msg->altitude + offset_z_, theta = 0.;
         if(covariance > ignore_th_cov_ || status == NO_FIX){
             x = NAN, y = NAN, z = NAN;
         } else {
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
+	    if(pre_x_ == NAN || pre_y_ == NAN){
+		    pre_x_ = x;
+		    pre_y_ = y;
+		    pre_theta_ = 0.;
+	    }else{
+		    double dx = pre_x_ - x;
+		    double dy = pre_y_ - y;
+		    if(hypot(dx, dy) > 0.10){
+		    	theta = atan2(dy, dx)+M_PI;
+		    }else{
+			theta = pre_theta_;
+		    }
+		    pre_x_ = x;
+		    pre_y_ = y;
+		    pre_theta_ = theta;
+	    }
             // if(outOfRange(x, y)){
             //     RCLCPP_INFO(this->get_logger(), "Out");
             //     x = NAN;
@@ -71,7 +88,7 @@ namespace gnss2map
             // }
         }
         // pubOdomGnss(x, y, z);
-        pubGnssPose(x, y, z, cov[0], cov[4], cov[8]);
+        pubGnssPose(x, y, z, theta, cov[0], cov[4], cov[8]);
     }
 
     void GaussKruger::initVariable()
@@ -117,6 +134,8 @@ namespace gnss2map
         gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
         K_ << p1_[0] / x1, 0., 0., p1_[1] / y1;
         RCLCPP_INFO(this->get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
+ 	pre_x_ = NAN;
+	pre_y_ = NAN;
     }
 
     void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
@@ -152,16 +171,19 @@ namespace gnss2map
     //     pub_odom_gnss_->publish(odom);
     // }
 
-    void GaussKruger::pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z)
+    void GaussKruger::pubGnssPose(double x, double y, double z, double theta, double dev_x, double dev_y, double dev_z)
     {
         geometry_msgs::msg::PoseWithCovarianceStamped pose;
+	tf2::Quaternion q;
+        q.setRPY(0, 0, theta);
+        tf2::convert(q, pose.pose.pose.orientation);	
         pose.header.frame_id = "map";
         pose.header.stamp = now();
         pose.pose.pose.position.x = x;
         pose.pose.pose.position.y = y;
         pose.pose.pose.position.z = z;
         pose.pose.covariance[0] = dev_x;
-	    pose.pose.covariance[7] = dev_y;
+	pose.pose.covariance[7] = dev_y;
         pose.pose.covariance[14] = dev_z;
         pub_gnss_pose_->publish(pose);
     }
