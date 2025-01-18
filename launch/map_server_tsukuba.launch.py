@@ -41,8 +41,8 @@ def generate_launch_description():
         launch_arguments={
             "map_path": [
             TextSubstitution(text=os.path.join(
-                    get_package_share_directory('gnss2map'), 
-                    'config', 'map', 'tsukuba', 'map_tsukuba.yaml'))],
+                    get_package_share_directory('raspicat_navigation'), 
+                    'config', 'map', 'tsukuba', 'localization',  'map_tsukuba_loc_2410271328.yaml'))],
         }.items()
     )
     ld = LaunchDescription()
