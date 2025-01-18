@@ -1,3 +1,4 @@
+
 # SPDX-FileCopyrightText: 2023 Makoto Yoshigoe myoshigo0127@gmail.com
 # SPDX-License-Identifier: Apache-2.0
 
@@ -34,7 +35,7 @@ def generate_launch_description():
         name="gauss_kruger_node", 
         executable="gauss_kruger_node", 
         parameters=[params_file], 
-        # remappings=[('gnss/fix', '/vps/fix')], 
+        remappings=[('gnss/fix', '/vps/fix')], 
     )
     
     map_dir = os.path.join(get_package_share_directory('raspicat_navigation'), 'config', 'map')
