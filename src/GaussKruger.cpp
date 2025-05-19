@@ -6,6 +6,10 @@
 #include <vector>
 #include <array>
 
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/convert.h>
+
+
 namespace gnss2map
 {
     GaussKruger::GaussKruger() : Node("gauss_kruger")
@@ -47,6 +51,8 @@ namespace gnss2map
     void GaussKruger::initPubSub()
     {
         sub_gnss_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gnss/fix", 2, std::bind(&GaussKruger::cbGnss, this, std::placeholders::_1));
+        sub_gnss_vel_ = 
+        this->create_subscription<geometry_msgs::msg::TwistStamped>("gnss/vel", 2, std::bind(&GaussKruger::cbGnssVel, this, std::placeholders::_1));
         // pub_odom_gnss_ = this->create_publisher<nav_msgs::msg::Odometry>("odom/gnss", 2);
         pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("gnss_pose_with_covariance", 2);
     }
@@ -58,12 +64,20 @@ namespace gnss2map
         // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
         int8_t status = msg->status.status;
         double x, y, z = msg->altitude + offset_z_;
+		double t = 0.;
         if(covariance > ignore_th_cov_ || status == NO_FIX){
             x = NAN, y = NAN, z = NAN;
         } else {
             double rad_phi = msg->latitude*M_PI/180;
             double rad_lambda = msg->longitude*M_PI/180;
             gaussKruger(rad_phi, rad_lambda, x, y);
+			if(!calc_direction_){
+				calc_direction_ = true;
+			}else{
+				t = calcDirection(x, y);
+			}			
+			pre_x_ = x;
+			pre_y_ = y;
             // if(outOfRange(x, y)){
             //     RCLCPP_INFO(this->get_logger(), "Out");
             //     x = NAN;
@@ -71,7 +85,28 @@ namespace gnss2map
             // }
         }
         // pubOdomGnss(x, y, z);
-        pubGnssPose(x, y, z, cov[0], cov[4], cov[8]);
+        pubGnssPose(x, y, z, vel_to_dir_+rad_theta_offset_, cov[0], cov[4], cov[8]);
+    }
+
+    void GaussKruger::cbGnssVel(geometry_msgs::msg::TwistStamped::ConstSharedPtr msg)
+    {
+        double vx = msg->twist.linear.x, vy = -msg->twist.linear.y;
+        double v = sqrt(pow(vx, 2)+pow(vy, 2));
+        double sin_to_true_course = asin(vx / v);
+        double cos_to_true_course = acos(vy / v);
+        RCLCPP_INFO(this->get_logger(), "v: %lf, sin, cos: %lf, %lf", 
+                    v, sin_to_true_course, cos_to_true_course);
+        if(abs(vx) < 0.05 && abs(vy) < 0.05) return;
+        if(vx > 0 && vy > 0){
+            vel_to_dir_ = M_PI / 2 - atan2(vx, vy);
+        }else if(vx < 0 && vy > 0){
+            vel_to_dir_ = M_PI / 2 + atan2(-vx, vy);
+        }else if(vx < 0 && vy < 0){
+            vel_to_dir_ = 3*M_PI / 2 - atan2(vx, vy);
+        }else if(vx > 0 && vy < 0){
+            vel_to_dir_ = 3*M_PI / 2 + atan2(-vx, vy);
+        }
+        vel_to_dir_ += M_PI / 2;
     }
 
     void GaussKruger::initVariable()
@@ -105,7 +140,7 @@ namespace gnss2map
         kt_ = 2*sqrt(n) / (1+n);
 
         K_ << 1., 0., 0., 1.;
-        double rad_theta_offset_ = 0.0;
+        rad_theta_offset_ = 0.0;
         R_ = Eigen::Rotation2Dd(rad_theta_offset_);
 
         double x0, y0, x1, y1;
@@ -117,6 +152,8 @@ namespace gnss2map
         gaussKruger(gnss1_[0], gnss1_[1], x1, y1);
         K_ << p1_[0] / x1, 0., 0., p1_[1] / y1;
         RCLCPP_INFO(this->get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
+
+        vel_to_dir_ = 0.;
     }
 
     void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
@@ -152,7 +189,7 @@ namespace gnss2map
     //     pub_odom_gnss_->publish(odom);
     // }
 
-    void GaussKruger::pubGnssPose(double x, double y, double z, double dev_x, double dev_y, double dev_z)
+    void GaussKruger::pubGnssPose(double x, double y, double z, double t, double dev_x, double dev_y, double dev_z)
     {
         geometry_msgs::msg::PoseWithCovarianceStamped pose;
         pose.header.frame_id = "map";
@@ -160,6 +197,14 @@ namespace gnss2map
         pose.pose.pose.position.x = x;
         pose.pose.pose.position.y = y;
         pose.pose.pose.position.z = z;
+
+        tf2::Quaternion q;
+        q.setRPY(0, 0, t);
+        pose.pose.pose.orientation.x = q[0];
+        pose.pose.pose.orientation.y = q[1];
+        pose.pose.pose.orientation.z = q[2];
+        pose.pose.pose.orientation.w = q[3];
+
         pose.pose.covariance[0] = dev_x;
 	    pose.pose.covariance[7] = dev_y;
         pose.pose.covariance[14] = dev_z;
@@ -170,6 +215,12 @@ namespace gnss2map
     // {
     //     return (x < range_limit_[0]  || y < range_limit_[1] || x >= range_limit_[2] || y >= range_limit_[3]);
     // }
+	
+	double GaussKruger::calcDirection(double cur_x, double cur_y)
+	{
+		double t = atan2(cur_y-pre_y_, cur_x-pre_x_);
+		return t;
+	}
 }
 
 int main(int argc, char ** argv)
