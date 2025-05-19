@@ -51,8 +51,6 @@ namespace gnss2map
     void GaussKruger::initPubSub()
     {
         sub_gnss_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gnss/fix", 2, std::bind(&GaussKruger::cbGnss, this, std::placeholders::_1));
-        sub_gnss_vel_ = 
-        this->create_subscription<geometry_msgs::msg::TwistStamped>("gnss/vel", 2, std::bind(&GaussKruger::cbGnssVel, this, std::placeholders::_1));
         // pub_odom_gnss_ = this->create_publisher<nav_msgs::msg::Odometry>("odom/gnss", 2);
         pub_gnss_pose_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("gnss_pose_with_covariance", 2);
     }
@@ -61,7 +59,7 @@ namespace gnss2map
     {
         double covariance = msg->position_covariance[0];
         std::array<double, 9UL> cov = msg->position_covariance;
-        // RCLCPP_INFO(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
+        RCLCPP_DEBUG(this->get_logger(), "cov (xx, yy): (%lf, %lf)", cov[0], cov[4]);
         int8_t status = msg->status.status;
         double x, y, z = msg->altitude + offset_z_;
 		double t = 0.;
@@ -78,35 +76,8 @@ namespace gnss2map
 			}			
 			pre_x_ = x;
 			pre_y_ = y;
-            // if(outOfRange(x, y)){
-            //     RCLCPP_INFO(this->get_logger(), "Out");
-            //     x = NAN;
-            //     y = NAN;
-            // }
         }
-        // pubOdomGnss(x, y, z);
-        pubGnssPose(x, y, z, vel_to_dir_+rad_theta_offset_, cov[0], cov[4], cov[8]);
-    }
-
-    void GaussKruger::cbGnssVel(geometry_msgs::msg::TwistStamped::ConstSharedPtr msg)
-    {
-        double vx = msg->twist.linear.x, vy = -msg->twist.linear.y;
-        double v = sqrt(pow(vx, 2)+pow(vy, 2));
-        double sin_to_true_course = asin(vx / v);
-        double cos_to_true_course = acos(vy / v);
-        RCLCPP_INFO(this->get_logger(), "v: %lf, sin, cos: %lf, %lf", 
-                    v, sin_to_true_course, cos_to_true_course);
-        if(abs(vx) < 0.05 && abs(vy) < 0.05) return;
-        if(vx > 0 && vy > 0){
-            vel_to_dir_ = M_PI / 2 - atan2(vx, vy);
-        }else if(vx < 0 && vy > 0){
-            vel_to_dir_ = M_PI / 2 + atan2(-vx, vy);
-        }else if(vx < 0 && vy < 0){
-            vel_to_dir_ = 3*M_PI / 2 - atan2(vx, vy);
-        }else if(vx > 0 && vy < 0){
-            vel_to_dir_ = 3*M_PI / 2 + atan2(-vx, vy);
-        }
-        vel_to_dir_ += M_PI / 2;
+        pubGnssPose(x, y, z, t, cov[0], cov[4], cov[8]);
     }
 
     void GaussKruger::initVariable()
@@ -177,18 +148,6 @@ namespace gnss2map
         y = -p(1) + p0_[1];
     }
 
-    // void GaussKruger::pubOdomGnss(double x, double y, double z)
-    // {
-    //     nav_msgs::msg::Odometry odom;
-    //     odom.header.stamp = now();
-    //     odom.header.frame_id = "map";
-    //     odom.child_frame_id = "base_footprint";
-    //     odom.pose.pose.position.x = x;
-    //     odom.pose.pose.position.y = y;
-    //     odom.pose.pose.position.z = z;
-    //     pub_odom_gnss_->publish(odom);
-    // }
-
     void GaussKruger::pubGnssPose(double x, double y, double z, double t, double dev_x, double dev_y, double dev_z)
     {
         geometry_msgs::msg::PoseWithCovarianceStamped pose;
@@ -210,11 +169,6 @@ namespace gnss2map
         pose.pose.covariance[14] = dev_z;
         pub_gnss_pose_->publish(pose);
     }
-
-    // bool GaussKruger::outOfRange(double x, double y)
-    // {
-    //     return (x < range_limit_[0]  || y < range_limit_[1] || x >= range_limit_[2] || y >= range_limit_[3]);
-    // }
 	
 	double GaussKruger::calcDirection(double cur_x, double cur_y)
 	{

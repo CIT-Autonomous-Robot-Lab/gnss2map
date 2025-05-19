@@ -38,27 +38,20 @@ class GaussKruger : public rclcpp::Node
     bool calc_direction_;
 	double pre_x_, pre_y_;
 
-    // std::vector<double> range_limit_;
-
     Eigen::Matrix2d K_;
     Eigen::Rotation2Dd R_;
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr sub_gnss_;
-    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr sub_gnss_vel_;
-    // rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_gnss_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_gnss_pose_;
 
     void initPubSub();
     void setParam();
     void getParam();
     void cbGnss(sensor_msgs::msg::NavSatFix::ConstSharedPtr msg);
-    void cbGnssVel(geometry_msgs::msg::TwistStamped::ConstSharedPtr msg);
     void initVariable();
     void gaussKruger(double rad_phi, double rad_lambda, double &x, double &y);
     void printVariable();
-    // void pubOdomGnss(double x, double y, double z);
     void pubGnssPose(double x, double y, double z, double t, double dev_x, double dev_y, double dev_z);
-    // bool outOfRange(double x, double y);
 	double calcDirection(double cur_x, double cur_y);
 };
 }
