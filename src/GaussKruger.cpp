@@ -73,6 +73,7 @@ namespace gnss2map
 				calc_direction_ = true;
 			}else{
 				t = calcDirection(x, y);
+				pre_t_ = t;
 			}			
 			pre_x_ = x;
 			pre_y_ = y;
@@ -125,6 +126,7 @@ namespace gnss2map
         RCLCPP_INFO(this->get_logger(), "kx: %lf, ky: %lf, theta: %lf", K_(0, 0), K_(1, 1), R_.angle());
 
         vel_to_dir_ = 0.;
+		pre_t_ = 0.;
     }
 
     void GaussKruger::gaussKruger(double rad_phi, double rad_lambda, double &x, double &y)
@@ -172,8 +174,9 @@ namespace gnss2map
 	
 	double GaussKruger::calcDirection(double cur_x, double cur_y)
 	{
-		double t = atan2(cur_y-pre_y_, cur_x-pre_x_);
-		return t;
+		double dx = cur_x - pre_x_, dy = cur_y - pre_y_;
+		if(hypot(dx, dy) >= 0.1) return atan2(cur_y-pre_y_, cur_x-pre_x_);
+		return pre_t_;
 	}
 }
 

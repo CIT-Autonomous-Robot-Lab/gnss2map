@@ -36,7 +36,7 @@ class GaussKruger : public rclcpp::Node
     double rad_theta_offset_;
     double vel_to_dir_;
     bool calc_direction_;
-	double pre_x_, pre_y_;
+	double pre_x_, pre_y_, pre_t_;
 
     Eigen::Matrix2d K_;
     Eigen::Rotation2Dd R_;
